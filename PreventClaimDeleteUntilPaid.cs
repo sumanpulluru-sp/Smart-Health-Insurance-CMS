@@ -14,6 +14,7 @@ namespace Smart_Health_Insurance_CMS
             {
                 // 1. Setup Context
                 IPluginExecutionContext context = (IPluginExecutionContext)serviceProvider.GetService(typeof(IPluginExecutionContext));
+                ITracingService tracingService = (ITracingService)serviceProvider.GetService(typeof(ITracingService));
                 IOrganizationServiceFactory serviceFactory = (IOrganizationServiceFactory)serviceProvider.GetService(typeof(IOrganizationServiceFactory));
                 IOrganizationService service = serviceFactory.CreateOrganizationService(context.UserId);
 
@@ -22,8 +23,9 @@ namespace Smart_Health_Insurance_CMS
                     return;
 
                 EntityReference claimRef = (EntityReference)context.InputParameters["Target"];
+                tracingService.Trace("Deleting Claim Record ID: {0}", claimRef.Id);
 
-                try
+            try
                 {
                     // 3. Retrieve related Claim Settlement records
                     QueryExpression query = new QueryExpression("sp_spclaimsettlement")
@@ -38,9 +40,11 @@ namespace Smart_Health_Insurance_CMS
                         }
                     };
 
-                    EntityCollection settlements = service.RetrieveMultiple(query);
+                tracingService.Trace("Executing query to retrieve related Claim Settlement record...");
+                EntityCollection settlements = service.RetrieveMultiple(query);
+                tracingService.Trace("Settlements found: {0}", settlements.Entities.Count);
 
-                    if (settlements.Entities.Count > 0)
+                if (settlements.Entities.Count > 0)
                     {
                         foreach (var settlement in settlements.Entities)
                         {
@@ -51,12 +55,14 @@ namespace Smart_Health_Insurance_CMS
                                 // Check if not Paid (Paid = 126530002)
                                 if (status != 126530002)
                                 {
+                                    tracingService.Trace("Settlement not Paid. Throwing business exception.");
                                     throw new InvalidPluginExecutionException(" Cannot delete Claim. All related Claim Settlements must be fully Paid before deletion.");
                                 }
                             }
                         }
                     }
-                }
+                tracingService.Trace("Settlement is Paid. Deletion allowed.");
+            }
                 catch (InvalidPluginExecutionException)
                 {
                     throw; // rethrow custom validation message
