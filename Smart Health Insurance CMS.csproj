@@ -135,6 +135,7 @@
     <Compile Include="ClaimPostCreateProcessor.cs" />
     <Compile Include="ClaimStatusCodes.cs" />
     <Compile Include="claimvalidate.cs" />
+    <Compile Include="PreventClaimDeleteUntilPaid.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
